@@ -2,10 +2,10 @@
 
 A comprehensive diagnostic and scoping plugin for WordPress. Designed for developers, agencies, and site administrators who need to analyze a WordPress installation for redesign projects, audits, or RFQ preparation.
 
-**Version:** 1.65
+**Version:** 1.8
 **Author:** Matt Brubaker — [mattbru.me](https://mattbru.me)
 **License:** GPL-2.0-or-later
-**Requires:** WordPress 5.0+ / PHP 7.4+
+**Requires:** WordPress 6.3+ / PHP 7.4+
 
 ---
  
@@ -21,33 +21,34 @@ The report is designed to give you (or a client) a clear snapshot of what a site
 
 | # | Section | What It Covers |
 |---|---------|----------------|
-| 1 | **Post Types & Content Structure** | All registered post types with content counts and source detection (core / plugin / theme / custom) |
-| 2 | **Taxonomies & Classification** | Registered taxonomies, term counts, source detection |
-| 3 | **Pages & Hierarchy** | Published/draft page counts, max nesting depth, page template usage |
-| 4 | **Forms & Form Plugins** | Detected form plugins (Gravity Forms, CF7, WPForms, etc.) and form counts |
-| 5 | **Database & Content Quality** | Orphaned tables, table sizes, revision counts, auto-draft cleanup |
-| 6 | **Custom Post Meta Analysis** | Post meta key analysis, excessive meta detection |
-| 7 | **Plugin & Dependency Audit** | Active/inactive plugin list, update status, last-updated dates |
-| 8 | **Theme & Front-End** | Active theme info, parent/child theme detection, template files |
-| 9 | **User Roles & Permissions** | User counts by role, capability overview |
-| 10 | **Media & Assets** | Attachment counts, upload directory size |
-| 11 | **URL Structure & Permalinks** | Current permalink structure, rewrite rules |
-| 12 | **Security Audit** | SSL certificate status, file permissions, WordPress version check, debug mode |
-| 13 | **Performance & Technical** | Google PageSpeed Insights scores (Performance, Accessibility, SEO, Best Practices), Core Web Vitals (LCP, FID, CLS, FCP, TTFB), enqueued styles/scripts count |
-| 14 | **SEO & Metadata** | SEO plugin detection, meta description/title checks |
-| 15 | **RFQ Requirements Summary** | Consolidated data points for project estimation — content volume, technical complexity, plugin dependencies |
-| 16 | **Cleanup & Technical Debt** | Unregistered shortcodes, excessive inline styling, orphaned data |
+| 1 | **Post Types & Content Structure** | All registered post types with counts by status and source (core / plugin / mu-plugin / theme / custom) |
+| 2 | **Taxonomies & Classification** | Registered taxonomies, term counts, source |
+| 3 | **Pages & Hierarchy** | Published/draft page counts, max nesting depth, template usage (including unused templates and pages assigned to templates missing from the theme) |
+| 4 | **Forms & Form Plugins** | Gravity Forms, Contact Form 7, WPForms and Formidable form counts (active vs. inactive) |
+| 5 | **Database & Content Quality** | Orphaned postmeta and term relationships, posts with excessive meta, database size, table count |
+| 6 | **Custom Post Meta Analysis** | Top 50 public postmeta keys by usage |
+| 7 | **Plugin & Dependency Audit** | Active/inactive plugins with update status from WordPress's own update check |
+| 8 | **Theme & Front-End** | Active theme, version, parent/child relationship, block vs. classic theme |
+| 9 | **User Roles & Permissions** | User counts per role, capability counts, default vs. custom roles |
+| 10 | **Media & Assets** | Attachment and image counts, media attached to deleted posts |
+| 11 | **URL Structure & Permalinks** | Home/site URL, permalink structure, category/tag bases, rewrite rule count |
+| 12 | **Security Audit** | Core version vs. latest, SSL certificate, file permissions, debug/config constants (`WP_DEBUG`, `WP_DEBUG_DISPLAY`, `WP_DEBUG_LOG`, `SCRIPT_DEBUG`, `DISALLOW_FILE_EDIT`) |
+| 13 | **Performance & Technical** | PHP/memory/upload limits, caching detection (plugins, page-cache drop-ins, object cache), PageSpeed Insights scores and Core Web Vitals (LCP, INP, CLS, plus TBT, FCP, TTFB) |
+| 14 | **SEO & Metadata** | SEO plugin detection, search engine visibility, live robots.txt check (whole-site blocks, Sitemap directives), posts with missing titles |
+| 15 | **RFQ Requirements Summary** | Consolidated data points for project estimation — content volume, features, integrations, hosting |
+| 16 | **Cleanup & Technical Debt** | Non-core tables with their likely owner, unregistered shortcodes, hand-written inline styling |
 
 ---
 
 ## Features
 
 - **Sticky sidebar navigation** — jump to any section without scrolling
-- **Source detection** — traces every custom post type and taxonomy back to the plugin, theme, or custom code that registered it
+- **Exact source detection** — records which file registered each post type and taxonomy at registration time (no filesystem scanning)
 - **Color-coded status indicators** — green/yellow/red flags for security, performance, and health checks
-- **Markdown export** — one-click download of the full report as a `.md` file with automatic site-name-based filename
-- **Transient caching** — heavy operations (PageSpeed API, file scanning, DB queries) are cached to avoid redundant work on repeat visits
-- **AJAX-based CPT/taxonomy scanning** — source detection runs asynchronously with a progress bar and timeout protection
+- **Markdown export** — one-click download of the full report as a `.md` file named after the site
+- **Caching with one-click refresh** — database checks are cached for 15 minutes, remote checks for 1–6 hours, and PageSpeed for 24 hours. Failed remote checks are cached for 15 minutes so a timeout isn't repeated on every load. **Refresh Cached Data** re-runs everything.
+- **Non-blocking PageSpeed** — PageSpeed Insights loads over AJAX after the report renders, with desktop and mobile fetched in parallel
+- **No third-party scripts** — Chart.js is bundled (pinned v4.4.0) and icons use WordPress's built-in Dashicons. Assets load only on the report screen.
 
 ---
 
@@ -63,15 +64,9 @@ No configuration required. The report generates on page load.
 
 ## Configuration
 
-All thresholds are exposed as WordPress filters so you can override them from your theme's `functions.php` or a mu-plugin without editing the plugin itself:
+Thresholds are exposed as WordPress filters, so you can override them from your theme's `functions.php` or a mu-plugin without editing the plugin itself:
 
 ```php
-// Increase scan timeout to 120 seconds (default: 60)
-add_filter( 'wp_audit_scan_timeout', function() { return 120; } );
-
-// Increase max file size for scanning to 1MB (default: 500KB)
-add_filter( 'wp_audit_max_file_size', function() { return 1024 * 1024; } );
-
 // Change inline style threshold to 25 (default: 15)
 add_filter( 'wp_audit_inline_style_limit', function() { return 25; } );
 
@@ -80,29 +75,60 @@ add_filter( 'wp_audit_shortcode_post_limit', function() { return 200; } );
 
 // Change max posts checked for inline styles (default: 100)
 add_filter( 'wp_audit_inline_style_post_limit', function() { return 200; } );
+
+// Teach the orphaned-table check about another plugin's tables.
+// Key is the table prefix after $wpdb->prefix; value is [ label, is the owner active? ].
+add_filter( 'wp_audit_known_table_owners', function( $owners ) {
+	$owners['myplugin_'] = array( 'My Plugin', class_exists( 'My_Plugin' ) );
+	return $owners;
+} );
 ```
+
+### PageSpeed Insights API key
+
+Without a key, Google's shared quota often returns HTTP 429. Add a free API key in `wp-config.php`:
+
+```php
+define( 'WP_AUDIT_PSI_KEY', 'your-google-api-key' );
+```
+
+…or supply it with the `wp_audit_pagespeed_api_key` filter. PageSpeed is skipped on local development sites (`.local`, `.test`, `localhost`, or `WP_ENVIRONMENT_TYPE` = `local`) because Google can't reach them.
 
 ---
 
 ## Requirements & Permissions
 
 - Requires the `manage_options` capability (Administrators only)
-- Google PageSpeed Insights uses the free public API (no key required, but subject to rate limits — 25 requests/day)
-- SSL certificate checks require outbound socket connections on port 443
+- PageSpeed Insights calls `googleapis.com`; an API key is recommended (see above)
+- The SSL certificate check needs outbound socket connections on port 443, and the robots.txt check makes a loopback request to the site
+- File permission checks are skipped on Windows servers
 
 ---
 
 ## Security
 
-- All admin pages check `current_user_can( 'manage_options' )` before rendering
-- AJAX endpoints are protected with nonce verification (`check_ajax_referer`)
-- All user input is sanitized with `sanitize_text_field()`
-- Output is escaped with `esc_html()`, `esc_url()`, `esc_attr()`, and `esc_js()` as appropriate
+- All admin pages, AJAX endpoints and the cache-refresh action check `current_user_can( 'manage_options' )`
+- AJAX and the refresh action are protected with nonces
+- Output is escaped with `esc_html()`, `esc_url()` and `esc_attr()`; data passed to JavaScript goes through `wp_json_encode()`
 - Database queries use `$wpdb->prepare()` for any parameterized values
+- No remote JavaScript is loaded in wp-admin
 
 ---
 
 ## Changelog
+
+### 1.8
+- **Fixed:** unregistered-shortcode detection never found anything (`get_shortcode_regex()` only matches registered tags). It now also reports posts affected and occurrences separately.
+- **Fixed:** "Posts with Excessive Meta" always reported 0 or 1, which also kept it out of the database health score
+- **Fixed:** the orphaned-table check told users to delete tables belonging to active plugins, and flagged multisite subsite tables. Tables are now matched to known owners and show an In use / Owner not active / Unknown status.
+- **Fixed:** threshold filters had no effect when added from a theme (they were read before the theme loaded)
+- **Fixed:** Formidable Forms were always counted as 0 (Formidable uses its own table, not a post type)
+- **Fixed:** "query limited" notes never appeared, literal `**` markdown showed in the HTML, a `wpdb::prepare()` notice, and export button icon removal
+- **Performance:** PageSpeed moved to AJAX; failed remote checks are cached; post/term counts collapsed into single grouped queries; duplicate uncached queries removed; WordPress version taken from core's update transient
+- **Performance:** source detection replaced a per-post-type scan of every plugin file with registration-time capture
+- **Performance:** CSS/JS moved to enqueued files on the report screen only; Lucide CDN replaced with Dashicons; Chart.js self-hosted
+- **Accuracy:** FID replaced with INP (field data) and TBT; PHP recommendation updated to 8.3+; plugin detection uses classes/constants instead of name keywords ("map" no longer matches "Sitemaps"); caching detection covers host-level page caches and object caches; robots.txt checked live; file permissions report good/review/insecure and find `wp-config.php` one level up; inline-style check ignores block-generated styles; unused and missing page templates are listed
+- **Added:** plugin update status, debug/config constants, role capability counts, rewrite rule count, Refresh Cached Data button, PageSpeed API key support
 
 ### 1.65
 - Fixed SSL certificate check to properly verify peer certificates
