@@ -1,0 +1,744 @@
+/**
+ * WP Site Audit Tool — admin report styles.
+ * Enqueued only on Tools > Site Audit.
+ */
+
+/* --- Layout & Navigation --- */
+.wp-audit-wrapper {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 20px;
+	margin-top: 20px;
+}
+.wp-audit-nav {
+	width: 240px;
+	position: sticky;
+	top: 40px; /* Aligns with WP admin bar */
+	flex-shrink: 0;
+	background: var(--wp-admin-background-color, #fff);
+	border: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+.wp-audit-nav h3 {
+	font-size: 14px;
+	font-weight: 600;
+	padding: 12px 15px;
+	margin: 0;
+	border-bottom: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	color: var(--ch-color-2, #2c3338);
+}
+.wp-audit-nav ul {
+	margin: 0;
+	padding: 10px 0;
+}
+.wp-audit-nav li {
+	margin: 0;
+	padding: 0;
+}
+.wp-audit-nav a {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 15px;
+	text-decoration: none;
+	color: var(--wp-admin-theme-color, #2271b1);
+	font-size: 13px;
+	border-left: 4px solid transparent;
+	position: relative;
+	transition: all 0.2s ease;
+}
+.wp-audit-nav a .dashicons {
+	width: 16px;
+	font-size: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	color: var(--wp-admin-theme-color, #2271b1);
+}
+.wp-audit-nav a span:not(.dashicons) {
+	flex: 1;
+}
+.wp-audit-nav a::after {
+	content: '';
+	width: 0;
+	height: 0;
+	border-top: 4px solid transparent;
+	border-bottom: 4px solid transparent;
+	border-left: 5px solid color-mix(in srgb, var(--wp-admin-theme-color, #2271b1) 15%, transparent);
+	margin-left: auto;
+	opacity: 1;
+	transition: all 0.2s ease;
+}
+.wp-audit-nav a:hover {
+	background: var(--ch-color-2, #f0f0f0);
+	color: var(--ch-color-1, #1d2327);
+}
+.wp-audit-nav a:hover .dashicons {
+	color: var(--ch-color-1, #1d2327);
+}
+.wp-audit-nav a:hover::after {
+	border-left-color: var(--ch-color-1, #1d2327);
+	opacity: 1;
+}
+.wp-audit-nav a.active {
+	font-weight: 600;
+	color: var(--ch-color-1, #1d2327);
+	background: var(--wp-components-color-gray-200, #f0f0f0);
+	border-left: 4px solid var(--wp-admin-theme-color, #2271b1);
+}
+.wp-audit-nav a.active .dashicons {
+	color: var(--wp-admin-theme-color, #2271b1);
+}
+.wp-audit-nav a.active::after {
+	border-left-color: var(--wp-admin-theme-color, #2271b1);
+	opacity: 1;
+}
+
+/* --- Main Content Area --- */
+.wp-audit-content {
+	flex-grow: 1;
+	min-width: 0; /* Prevents flex overflow */
+	background: var(--wp-components-color-gray-100, #f9f9f9);
+	padding: 1px 20px 20px 20px; /* 1px padding to contain margins */
+	border-radius: 4px;
+	border: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	max-width: 1400px;
+}
+.wp-audit-content h2 {
+	color: var(--ch-color-1, #1d2327);
+	border-bottom: 3px solid var(--wp-admin-theme-color, #2271b1);
+	padding-bottom: 10px;
+	margin-top: 40px;
+	margin-bottom: 15px;
+	font-size: 20px;
+	font-weight: 700;
+	scroll-margin-top: 50px; /* Offset for sticky nav */
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.wp-audit-content h2 .dashicons {
+	width: 22px;
+	font-size: 22px;
+	height: 22px;
+	color: var(--wp-admin-theme-color, #2271b1);
+	flex-shrink: 0;
+}
+.wp-audit-content h2:first-of-type {
+	margin-top: 20px;
+}
+
+/* --- Overview Section --- */
+#section-overview {
+	background: var(--wp-admin-background-color, #fff);
+	border: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	border-left: 4px solid var(--wp-admin-theme-color, #2271b1);
+	padding: 15px 20px;
+	margin: 20px 0;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+#section-overview h3 {
+	margin: 0 0 20px 0;
+	font-size: 18px;
+	color: var(--ch-color-1, #1d2327);
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+#section-overview h3 .dashicons {
+	width: 22px;
+	font-size: 22px;
+	height: 22px;
+	color: var(--wp-admin-theme-color, #2271b1);
+}
+.wp-audit-overview-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 16px;
+}
+.wp-audit-overview-item {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	font-size: 14px;
+	background: var(--wp-components-color-gray-100, #f9fafb);
+	border: 1px solid var(--wp-admin-border-color-translucent, #e5e7eb);
+	border-radius: 8px;
+	padding: 16px;
+	transition: all 0.2s ease;
+}
+.wp-audit-overview-item:hover {
+	border-color: var(--wp-admin-theme-color, #2271b1);
+	box-shadow: 0 2px 8px color-mix(in srgb, var(--wp-admin-theme-color, #2271b1) 10%, transparent);
+}
+.wp-audit-overview-item-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 12px;
+}
+.wp-audit-overview-icon {
+	width: 20px;
+	font-size: 20px;
+	height: 20px;
+	color: var(--wp-admin-theme-color, #2271b1);
+	flex-shrink: 0;
+}
+.wp-audit-overview-item strong {
+	display: block;
+	color: var(--ch-color-1, #1d2327);
+	font-weight: 600;
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+.wp-audit-overview-item .value {
+	font-size: 24px;
+	color: var(--wp-admin-theme-color, #2271b1);
+	font-weight: 700;
+	display: block;
+	margin-bottom: 8px;
+	line-height: 1.2;
+}
+.wp-audit-overview-item span:not(.dashicons),
+.wp-audit-overview-item ul {
+	font-size: 1.2em;
+	color: var(--wp-admin-theme-color, #2271b1);
+	font-weight: 600;
+	display: block;
+	margin-top: 4px;
+}
+.wp-audit-overview-item ul {
+	font-size: 1em;
+	margin: 4px 0 0 0;
+	list-style: none;
+	padding: 0;
+}
+.wp-audit-overview-item li {
+	font-weight: 400;
+	color: var(--wp-components-color-foreground, #1e1e1e);
+}
+.wp-audit-overview-item li .count {
+	font-weight: 600;
+	color: var(--wp-admin-theme-color, #2271b1);
+}
+.wp-audit-overview-divider {
+	margin: 12px 0;
+	border: none;
+	border-top: 1px solid var(--wp-admin-border-color-translucent, #e5e7eb);
+}
+.wp-audit-overview-secondary {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--wp-admin-border-color-translucent, #e5e7eb);
+}
+.wp-audit-overview-secondary strong {
+	font-size: 12px;
+	color: var(--wp-components-color-foreground-tertiary, #757575);
+}
+.wp-audit-overview-secondary span:not(.dashicons) {
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--wp-components-color-foreground-secondary, #50575e);
+}
+
+/* --- Report Tables --- */
+.wp-audit-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 20px;
+	background: var(--wp-admin-background-color, #fff);
+	border: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	font-family: monospace;
+	font-size: 13px;
+}
+.wp-audit-table th {
+	background-color: var(--wp-admin-theme-color, #2271b1);
+	color: var(--ch-color-4, #fff);
+	padding: 12px;
+	text-align: left;
+	font-weight: bold;
+	border: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	position: relative;
+}
+.wp-audit-table th.sortable {
+	cursor: pointer;
+	user-select: none;
+	padding-right: 30px;
+	transition: background-color 0.2s ease;
+}
+.wp-audit-table th.sortable:hover {
+	background-color: var(--wp-admin-theme-color-darker-10, #135e96);
+}
+.wp-audit-table th.sortable::after {
+	content: '';
+	position: absolute;
+	right: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 0;
+	height: 0;
+	border-left: 4px solid transparent;
+	border-right: 4px solid transparent;
+	border-top: 5px solid rgba(255, 255, 255, 0.4);
+	opacity: 0.5;
+}
+.wp-audit-table th.sortable:hover::after {
+	opacity: 1;
+}
+.wp-audit-table th.sortable.sort-asc::after {
+	border-top: none;
+	border-bottom: 5px solid white;
+	opacity: 1;
+}
+.wp-audit-table th.sortable.sort-desc::after {
+	border-top: 5px solid white;
+	border-bottom: none;
+	opacity: 1;
+}
+.wp-audit-table td {
+	padding: 10px 12px;
+	border: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	border-bottom: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	vertical-align: top;
+}
+.wp-audit-table tr:nth-child(even) {
+	background-color: var(--wp-components-color-gray-100, #f6f7f7);
+}
+.wp-audit-table tr:hover {
+	background-color: var(--wp-components-color-gray-200, #f0f0f1);
+}
+
+/* Nested Table Style (for Templates) */
+.wp-audit-table .wp-audit-table {
+	font-family: inherit;
+	margin: 0;
+	background: var(--wp-components-color-gray-50, #fafafa);
+	border: 1px solid var(--wp-admin-border-color-translucent, #dcdcde);
+	border-radius: 4px;
+	width: 100%;
+}
+.wp-audit-table .wp-audit-table th {
+	font-size: 11px;
+	padding: 8px;
+	background: var(--ch-color-2, #2c3338);
+}
+.wp-audit-table .wp-audit-table td {
+	font-size: 12px;
+	padding: 6px 8px;
+}
+
+/* --- Custom Badge for CPT/Taxonomies --- */
+.wp-audit-custom-badge {
+	display: inline-block;
+	line-height: 1;
+}
+.wp-audit-custom-badge .dashicons {
+	animation: shimmer 2s ease-in-out infinite;
+}
+@keyframes shimmer {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.6; }
+}
+
+/* --- Status Indicators --- */
+.audit-status-good {
+	color: #28a745;
+	font-weight: bold;
+}
+.audit-status-warning {
+	color: #ffb900; /* WP Yellow */
+	font-weight: bold;
+}
+.audit-status-bad {
+	color: #dc3545;
+	font-weight: bold;
+}
+
+/* --- Misc Styles --- */
+.audit-summary {
+	background: white;
+	padding: 15px;
+	border-left: 4px solid #0073aa;
+	margin-bottom: 20px;
+	border-radius: 3px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	font-size: 14px;
+}
+.audit-section-header {
+	font-size: 16px;
+	font-weight: 600;
+	color: #2c3338;
+	margin-top: 25px;
+	margin-bottom: 10px;
+	padding-bottom: 5px;
+	border-bottom: 1px solid #ddd;
+}
+.wp-audit-tooltip {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border: 1px solid #ccc;
+	border-radius: 50%;
+	text-align: center;
+	line-height: 14px;
+	font-size: 12px;
+	color: #999;
+	background: #f9f9f9;
+	cursor: help;
+}
+
+/* --- Progress Bar --- */
+#wp-audit-progress {
+	width: 100%;
+	max-width: 300px;
+	max-width: 100%;
+}
+.wp-audit-progress-bar {
+	width: 100%;
+	height: 12px;
+	background-color: #e0e0e0;
+	border-radius: 4px;
+	overflow: hidden;
+}
+.wp-audit-progress-inner {
+	height: 100%;
+	background-color: #0073aa;
+	background-color: var(--wp-admin-theme-color, #2271b1);
+	transition: width 0.3s ease-in-out;
+}
+
+/* ========================================
+   MOBILE RESPONSIVENESS
+   ======================================== */
+
+/* --- Tablet/Large Mobile (max-width: 1024px) --- */
+@media (max-width: 1024px) {
+	.wp-audit-wrapper {
+		gap: 15px;
+	}
+	.wp-audit-nav {
+		width: 200px;
+	}
+	.wp-audit-content {
+		padding: 1px 15px 15px 15px;
+	}
+	.wp-audit-overview-grid {
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 12px;
+	}
+}
+
+/* --- Tablet (max-width: 768px) --- */
+@media (max-width: 768px) {
+	.wp-audit-wrapper {
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	/* Navigation becomes horizontal/stacked at top */
+	.wp-audit-nav {
+		width: 100%;
+		position: relative;
+		top: auto;
+		margin-bottom: 0;
+	}
+	.wp-audit-nav h3 {
+		font-size: 15px;
+	}
+	.wp-audit-nav ul {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+		gap: 0;
+		padding: 0;
+	}
+	.wp-audit-nav li {
+		border-bottom: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	}
+	.wp-audit-nav a {
+		padding: 12px 15px;
+		border-left: none;
+		border-bottom: 3px solid transparent;
+	}
+	.wp-audit-nav a.active {
+		border-left: none;
+		border-bottom: 3px solid var(--wp-admin-theme-color, #2271b1);
+	}
+
+	/* Content area adjustments */
+	.wp-audit-content {
+		padding: 1px 15px 15px 15px;
+		max-width: 100%;
+	}
+	.wp-audit-content h2 {
+		font-size: 18px;
+		margin-top: 30px;
+		scroll-margin-top: 20px;
+	}
+	.wp-audit-content h2 .dashicons {
+		width: 20px;
+		font-size: 20px;
+		height: 20px;
+	}
+
+	/* Overview grid becomes single column */
+	.wp-audit-overview-grid {
+		grid-template-columns: 1fr;
+		gap: 12px;
+	}
+	.wp-audit-overview-item {
+		padding: 14px;
+	}
+
+	/* Tables become scrollable */
+	.wp-audit-table-wrapper {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+	.wp-audit-table {
+		min-width: 600px;
+		font-size: 12px;
+	}
+	.wp-audit-table th,
+	.wp-audit-table td {
+		padding: 10px 8px;
+	}
+
+	/* Section overview */
+	#section-overview {
+		padding: 12px 15px;
+	}
+	#section-overview h3 {
+		font-size: 16px;
+	}
+}
+
+/* --- Mobile (max-width: 480px) --- */
+@media (max-width: 480px) {
+	.wp-audit-wrapper {
+		gap: 15px;
+	}
+
+	/* Navigation becomes fully stacked */
+	.wp-audit-nav ul {
+		grid-template-columns: 1fr;
+	}
+	.wp-audit-nav a {
+		font-size: 12px;
+		padding: 10px 12px;
+	}
+	.wp-audit-nav a .dashicons {
+		width: 14px;
+		font-size: 14px;
+		height: 14px;
+	}
+
+	/* Content area more compact */
+	.wp-audit-content {
+		padding: 1px 10px 10px 10px;
+	}
+	.wp-audit-content h2 {
+		font-size: 16px;
+		margin-top: 25px;
+		padding-bottom: 8px;
+		gap: 8px;
+	}
+	.wp-audit-content h2 .dashicons {
+		width: 18px;
+		font-size: 18px;
+		height: 18px;
+	}
+
+	/* Overview items more compact */
+	.wp-audit-overview-item {
+		padding: 12px;
+	}
+	.wp-audit-overview-item .value {
+		font-size: 20px;
+	}
+	.wp-audit-overview-item strong {
+		font-size: 12px;
+	}
+	.wp-audit-overview-icon {
+		width: 18px;
+		font-size: 18px;
+		height: 18px;
+	}
+
+	/* Tables become more compact and scrollable */
+	.wp-audit-table {
+		display: block;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		font-size: 11px;
+		min-width: 100%;
+		white-space: nowrap;
+	}
+	.wp-audit-table th,
+	.wp-audit-table td {
+		padding: 8px 6px;
+		font-size: 11px;
+	}
+	.wp-audit-table th {
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.3px;
+	}
+
+	/* Nested tables */
+	.wp-audit-table .wp-audit-table {
+		font-size: 10px;
+	}
+	.wp-audit-table .wp-audit-table th,
+	.wp-audit-table .wp-audit-table td {
+		padding: 5px 4px;
+		font-size: 10px;
+	}
+
+	/* Section overview more compact */
+	#section-overview {
+		padding: 10px 12px;
+		margin: 15px 0;
+	}
+	#section-overview h3 {
+		font-size: 15px;
+		margin-bottom: 15px;
+	}
+	#section-overview h3 .dashicons {
+		width: 18px;
+		font-size: 18px;
+		height: 18px;
+	}
+
+	/* Buttons stack vertically */
+	.button,
+	.wp-core-ui .button {
+		display: block;
+		width: 100%;
+		margin-bottom: 10px;
+		text-align: center;
+	}
+
+	/* Progress bar */
+	#wp-audit-progress {
+		margin: 10px 0;
+	}
+
+	/* Misc adjustments */
+	.audit-summary {
+		padding: 12px;
+		font-size: 13px;
+	}
+	.audit-section-header {
+		font-size: 14px;
+		margin-top: 20px;
+	}
+}
+
+/* --- Small Mobile (max-width: 375px) --- */
+@media (max-width: 375px) {
+	.wp-audit-content {
+		padding: 1px 8px 8px 8px;
+	}
+	.wp-audit-content h2 {
+		font-size: 15px;
+		gap: 6px;
+	}
+	.wp-audit-content h2 .dashicons {
+		width: 16px;
+		font-size: 16px;
+		height: 16px;
+	}
+
+	.wp-audit-nav a {
+		font-size: 11px;
+		padding: 8px 10px;
+	}
+
+	.wp-audit-overview-item {
+		padding: 10px;
+	}
+	.wp-audit-overview-item .value {
+		font-size: 18px;
+	}
+	.wp-audit-overview-item strong {
+		font-size: 11px;
+	}
+
+	.wp-audit-table {
+		font-size: 10px;
+	}
+	.wp-audit-table th,
+	.wp-audit-table td {
+		padding: 6px 4px;
+		font-size: 10px;
+	}
+
+	#section-overview {
+		padding: 8px 10px;
+	}
+	#section-overview h3 {
+		font-size: 14px;
+	}
+}
+
+/* --- Print Styles --- */
+@media print {
+	.wp-audit-nav,
+	.button,
+	#wp-audit-progress {
+		display: none !important;
+	}
+	.wp-audit-wrapper {
+		flex-direction: column;
+	}
+	.wp-audit-content {
+		max-width: 100%;
+		border: none;
+		box-shadow: none;
+	}
+	.wp-audit-table {
+		page-break-inside: avoid;
+	}
+}
+
+/* --- Dashicons (replaced the Lucide CDN; Dashicons already ship with wp-admin) --- */
+.wp-audit-custom-badge .dashicons {
+	width: 14px;
+	height: 14px;
+	font-size: 14px;
+	color: #f59e0b;
+	vertical-align: middle;
+	margin-left: 4px;
+}
+
+/* --- PageSpeed (loaded via AJAX) --- */
+.wp-audit-loading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: #666;
+}
+.wp-audit-loading .spinner {
+	float: none;
+	margin: 0;
+}
+.wp-audit-subheading {
+	font-size: 14px;
+	margin-top: 20px;
+	margin-bottom: 10px;
+	color: var(--ch-color-1, #1d2327);
+}
+.wp-audit-chart-box {
+	background: var(--wp-admin-background-color, #fff);
+	padding: 20px;
+	border-radius: 8px;
+	border: 1px solid var(--wp-admin-border-color, #c3c4c7);
+	max-width: 600px;
+	margin: 0 auto;
+}
+.wp-audit-psi-error {
+	background: #fff3cd;
+	border-left-color: #ffb900;
+}
