@@ -8,130 +8,97 @@
 	'use strict';
 
 	const data = window.wpAudit || {};
+	const statusLine = document.querySelector( '.wp-audit-action-status' );
 
-	const STATUS_COLORS = {
-		good: '#28a745',
-		warning: '#ffb900',
-		bad: '#d63638',
+	const COLORS = {
+		good: '#007017',
+		warning: '#996800',
+		bad: '#b32d2e',
+		accent: getComputedStyle( document.documentElement ).getPropertyValue( '--wp-admin-theme-color' ).trim() || '#2271b1',
 	};
+
+	function announce( message ) {
+		if ( statusLine ) {
+			statusLine.textContent = message;
+		}
+	}
+
+	function escapeHtml( text ) {
+		const div = document.createElement( 'div' );
+		div.textContent = String( text );
+		return div.innerHTML;
+	}
 
 	/* ======================================================================
 	   Charts
 	   ====================================================================== */
 
 	function initCharts() {
-		if ( typeof Chart === 'undefined' ) {
+		const charts = data.charts;
+		if ( typeof Chart === 'undefined' || ! charts ) {
 			return;
 		}
 
 		Chart.defaults.color = '#1d2327';
-		Chart.defaults.borderColor = '#c3c4c7';
+		Chart.defaults.borderColor = '#dcdcde';
 		Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif';
 
-		// 1. Plugin Distribution
+		// Respect reduced-motion preferences; charts animate by default.
+		if ( window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches ) {
+			Chart.defaults.animation = false;
+		}
+
 		const pluginCanvas = document.getElementById( 'plugin-distribution-chart' );
-		if ( pluginCanvas && data.plugins ) {
+		if ( pluginCanvas ) {
 			new Chart( pluginCanvas, {
 				type: 'doughnut',
 				data: {
-					labels: [ 'Active Plugins', 'Inactive Plugins' ],
-					datasets: [ {
-						data: data.plugins,
-						backgroundColor: [ 'rgba(34, 113, 177, 0.8)', 'rgba(214, 54, 56, 0.8)' ],
-						borderColor: [ 'rgba(34, 113, 177, 1)', 'rgba(214, 54, 56, 1)' ],
-						borderWidth: 2,
-					} ],
+					labels: [ 'Active', 'Inactive' ],
+					datasets: [ { data: charts.plugins, backgroundColor: [ COLORS.accent, '#c3c4c7' ], borderWidth: 0 } ],
 				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: true,
-					plugins: {
-						legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } },
-						tooltip: {
-							callbacks: {
-								label( context ) {
-									const value = context.parsed || 0;
-									const total = context.dataset.data.reduce( ( a, b ) => a + b, 0 );
-									const percentage = total ? ( ( value / total ) * 100 ).toFixed( 1 ) : 0;
-									return ( context.label || '' ) + ': ' + value + ' (' + percentage + '%)';
-								},
-							},
-						},
-					},
-				},
+				options: { maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' } } },
 			} );
 		}
 
-		// 2. Top Post Types
-		const postTypesCanvas = document.getElementById( 'post-types-chart' );
-		if ( postTypesCanvas && data.postTypes ) {
-			new Chart( postTypesCanvas, {
+		const typesCanvas = document.getElementById( 'post-types-chart' );
+		if ( typesCanvas ) {
+			new Chart( typesCanvas, {
 				type: 'bar',
 				data: {
-					labels: data.postTypes.labels,
-					datasets: [ {
-						label: 'Published Count',
-						data: data.postTypes.data,
-						backgroundColor: 'rgba(34, 113, 177, 0.8)',
-						borderColor: 'rgba(34, 113, 177, 1)',
-						borderWidth: 2,
-					} ],
+					labels: charts.postTypes.labels,
+					datasets: [ { label: 'Published', data: charts.postTypes.data, backgroundColor: COLORS.accent, borderRadius: 3 } ],
 				},
 				options: {
-					responsive: true,
-					maintainAspectRatio: true,
+					maintainAspectRatio: false,
+					indexAxis: 'y',
 					plugins: { legend: { display: false } },
-					scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+					scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
 				},
 			} );
 		}
 
-		// 3. Database Health gauge
-		const dbHealthCanvas = document.getElementById( 'database-health-chart' );
-		if ( dbHealthCanvas && typeof data.healthScore === 'number' ) {
-			const score = data.healthScore;
-			let color = STATUS_COLORS.bad;
-			if ( score >= 80 ) {
-				color = STATUS_COLORS.good;
-			} else if ( score >= 60 ) {
-				color = STATUS_COLORS.warning;
-			}
-
-			new Chart( dbHealthCanvas, {
+		const healthCanvas = document.getElementById( 'database-health-chart' );
+		if ( healthCanvas ) {
+			const score = charts.healthScore;
+			const color = score >= 80 ? COLORS.good : ( score >= 60 ? COLORS.warning : COLORS.bad );
+			new Chart( healthCanvas, {
 				type: 'doughnut',
-				data: {
-					labels: [ 'Health', 'Issues' ],
-					datasets: [ {
-						data: [ score, 100 - score ],
-						backgroundColor: [ color, 'rgba(200, 200, 200, 0.2)' ],
-						borderColor: [ color, 'rgba(200, 200, 200, 1)' ],
-						borderWidth: 2,
-						circumference: 180,
-						rotation: 270,
-					} ],
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: true,
-					plugins: { legend: { display: false }, tooltip: { enabled: false } },
-				},
+				data: { datasets: [ { data: [ score, 100 - score ], backgroundColor: [ color, '#f0f0f1' ], borderWidth: 0, circumference: 180, rotation: 270 } ] },
+				options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } },
 				plugins: [ {
 					id: 'gaugeText',
 					afterDraw( chart ) {
-						const ctx = chart.ctx;
-						const centerX = ( chart.chartArea.left + chart.chartArea.right ) / 2;
-						const centerY = ( chart.chartArea.top + chart.chartArea.bottom ) / 2 + 20;
-
+						const { ctx, chartArea } = chart;
+						const x = ( chartArea.left + chartArea.right ) / 2;
+						const y = chartArea.bottom - 8;
 						ctx.save();
-						ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
-						ctx.fillStyle = color;
 						ctx.textAlign = 'center';
-						ctx.textBaseline = 'middle';
-						ctx.fillText( String( score ), centerX, centerY );
-
-						ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto';
-						ctx.fillStyle = '#666';
-						ctx.fillText( 'Health Score', centerX, centerY + 25 );
+						ctx.fillStyle = color;
+						ctx.font = '600 28px ' + Chart.defaults.font.family;
+						ctx.fillText( String( score ), x, y - 14 );
+						ctx.fillStyle = '#646970';
+						ctx.font = '12px ' + Chart.defaults.font.family;
+						ctx.fillText( 'out of 100', x, y + 4 );
 						ctx.restore();
 					},
 				} ],
@@ -143,51 +110,28 @@
 	   PageSpeed Insights (loaded after paint — each API call can take 20–40s)
 	   ====================================================================== */
 
-	// Thresholds: [ good at or below / at or above, warning boundary, higher-is-better ].
-	const SCORE = [ 90, 50, true ];
-	const PSI_ROWS = {
-		scores: [
-			{ key: 'performance', label: 'Performance Score', rule: SCORE, format: scoreFormat, benchmark: '90+ Good, 50-89 Needs Work, <50 Poor' },
-			{ key: 'accessibility', label: 'Accessibility Score', rule: SCORE, format: scoreFormat, benchmark: '90+ Accessible' },
-			{ key: 'seo', label: 'SEO Score', rule: SCORE, format: scoreFormat, benchmark: '90+ SEO Friendly' },
-			{ key: 'best_practices', label: 'Best Practices', rule: SCORE, format: scoreFormat, benchmark: '90+ Follows Best Practices' },
-		],
-		vitals: [
-			{ key: 'lcp', label: 'LCP (Largest Contentful Paint)', rule: [ 2.5, 4, false ], format: ( v ) => v.toFixed( 2 ) + 's', benchmark: '≤ 2.5s' },
-			{ key: 'inp', label: 'INP (Interaction to Next Paint) — real users', rule: [ 200, 500, false ], format: inpFormat, benchmark: '≤ 200ms' },
-			{ key: 'cls', label: 'CLS (Cumulative Layout Shift)', rule: [ 0.1, 0.25, false ], format: ( v ) => v.toFixed( 3 ), benchmark: '≤ 0.1' },
-			{ key: 'tbt', label: 'TBT (Total Blocking Time) — lab stand-in for INP', rule: [ 200, 600, false ], format: ( v ) => Math.round( v ) + 'ms', benchmark: '≤ 200ms' },
-			{ key: 'fcp', label: 'FCP (First Contentful Paint)', rule: [ 1.8, 3, false ], format: ( v ) => v.toFixed( 2 ) + 's', benchmark: '≤ 1.8s' },
-			{ key: 'ttfb', label: 'TTFB (Server Response Time)', rule: [ 800, 1800, false ], format: ( v ) => Math.round( v ) + 'ms', benchmark: '≤ 800ms' },
-		],
-	};
-
-	function scoreFormat( value ) {
-		return value + '/100';
-	}
-
-	function inpFormat( value, result ) {
-		return value + 'ms' + ( result.inp_scope === 'origin' ? ' (whole site)' : '' );
-	}
-
-	function statusClass( value, rule ) {
-		const [ good, warning, higherIsBetter ] = rule;
-		if ( higherIsBetter ) {
-			if ( value >= good ) {
-				return 'audit-status-good';
-			}
-			return value >= warning ? 'audit-status-warning' : 'audit-status-bad';
+	function formatPsi( row, value, result ) {
+		let text;
+		if ( row.unit === 'score' ) {
+			text = value + '/100';
+		} else if ( row.unit === 's' ) {
+			text = Number( value ).toFixed( 2 ) + ' s';
+		} else if ( row.unit === 'cls' ) {
+			text = Number( value ).toFixed( 3 );
+		} else {
+			text = Math.round( value ) + ' ms';
 		}
-		if ( value <= good ) {
-			return 'audit-status-good';
+		if ( row.key === 'inp' && result.inp_scope === 'origin' ) {
+			text += ' (whole site)';
 		}
-		return value <= warning ? 'audit-status-warning' : 'audit-status-bad';
+		return text;
 	}
 
-	function escapeHtml( text ) {
-		const div = document.createElement( 'div' );
-		div.textContent = String( text );
-		return div.innerHTML;
+	function psiStatus( row, value ) {
+		if ( row.higher ) {
+			return value >= row.good ? 'good' : ( value >= row.warn ? 'warning' : 'bad' );
+		}
+		return value <= row.good ? 'good' : ( value <= row.warn ? 'warning' : 'bad' );
 	}
 
 	function psiCell( row, result ) {
@@ -197,20 +141,19 @@
 		const value = result[ row.key ];
 		if ( value === null || value === undefined ) {
 			// Only INP is routinely missing: CrUX has no real-user data for low-traffic sites.
-			return '<td><em>' + ( row.key === 'inp' ? 'No field data' : 'n/a' ) + '</em></td>';
+			return '<td><em>' + ( row.key === 'inp' ? 'No real-user data' : 'n/a' ) + '</em></td>';
 		}
-		return '<td><span class="' + statusClass( value, row.rule ) + '">' + escapeHtml( row.format( value, result ) ) + '</span></td>';
+		const status = psiStatus( row, value );
+		const label = { good: 'OK', warning: 'Warning', bad: 'Issue' }[ status ];
+		return '<td><span class="wp-audit-status is-' + status + '"><span class="screen-reader-text">' + label + ': </span>' + escapeHtml( formatPsi( row, value, result ) ) + '</span></td>';
 	}
 
-	function psiTable( rows, firstHeader, results ) {
-		let html = '<table class="wp-audit-table"><thead><tr><th>' + firstHeader + '</th><th>Desktop</th><th>Mobile</th><th>Benchmark</th></tr></thead><tbody>';
+	function psiTable( rows, results ) {
+		let html = '<div class="wp-audit-table-wrap"><table class="wp-audit-table"><thead><tr><th scope="col">Metric</th><th scope="col">Mobile</th><th scope="col">Desktop</th><th scope="col">Good</th></tr></thead><tbody>';
 		rows.forEach( ( row ) => {
-			html += '<tr><td><strong>' + escapeHtml( row.label ) + '</strong></td>'
-				+ psiCell( row, results.desktop )
-				+ psiCell( row, results.mobile )
-				+ '<td>' + escapeHtml( row.benchmark ) + '</td></tr>';
+			html += '<tr><td>' + escapeHtml( row.label ) + '</td>' + psiCell( row, results.mobile ) + psiCell( row, results.desktop ) + '<td>' + escapeHtml( row.benchmark ) + '</td></tr>';
 		} );
-		return html + '</tbody></table>';
+		return html + '</tbody></table></div>';
 	}
 
 	function fetchPagespeed( strategy ) {
@@ -221,288 +164,291 @@
 
 		return fetch( data.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: form } )
 			.then( ( response ) => response.json() )
-			.then( ( json ) => ( json.success ? json.data : { error: true, strategy, message: json.data && json.data.message ? json.data.message : 'Unknown error' } ) )
+			.then( ( json ) => ( json.success ? json.data : Object.assign( { error: true, strategy, message: 'Unknown error' }, json.data || {} ) ) )
 			.catch( ( err ) => ( { error: true, strategy, message: err.message } ) );
 	}
 
 	function loadPagespeed() {
 		const container = document.getElementById( 'wp-audit-pagespeed' );
-		if ( ! container ) {
-			return;
+		if ( ! container || ! data.psiRows ) {
+			return Promise.resolve();
 		}
 
 		// Both strategies run in parallel; each is its own request so neither waits on the other's API call.
-		Promise.all( [ fetchPagespeed( 'desktop' ), fetchPagespeed( 'mobile' ) ] ).then( ( [ desktop, mobile ] ) => {
-			if ( desktop.error && mobile.error ) {
-				container.innerHTML = '<div class="audit-summary wp-audit-psi-error"><strong>PageSpeed API Error:</strong> '
-					+ escapeHtml( desktop.message )
-					+ '<br><small>Usually an API rate limit or a site Google can\'t reach. Without an API key the shared quota often fails; add <code>define( \'WP_AUDIT_PSI_KEY\', \'...\' );</code> to wp-config.php, then use Refresh Cached Data.</small></div>';
+		return Promise.all( [ fetchPagespeed( 'mobile' ), fetchPagespeed( 'desktop' ) ] ).then( ( [ mobile, desktop ] ) => {
+			container.setAttribute( 'aria-busy', 'false' );
+
+			if ( mobile.error && desktop.error ) {
+				const hint = mobile.local
+					? ''
+					: '<br>Without an API key Google\'s shared quota often fails. Add <code>define( \'WP_AUDIT_PSI_KEY\', \'…\' );</code> to wp-config.php, then use Refresh data.';
+				container.innerHTML = '<div class="wp-audit-callout is-warning"><strong>PageSpeed unavailable.</strong> ' + escapeHtml( mobile.message ) + hint + '</div>';
 				return;
 			}
 
-			const results = { desktop, mobile };
-			let html = psiTable( PSI_ROWS.scores, 'Metric', results );
-			html += '<h4 class="wp-audit-subheading">Core Web Vitals</h4>';
-			html += psiTable( PSI_ROWS.vitals, 'Vital', results );
-
-			[ desktop, mobile ].forEach( ( result ) => {
+			const results = { mobile, desktop };
+			let html = '<h4>Lighthouse scores</h4>' + psiTable( data.psiRows.scores, results );
+			html += '<h4>Core Web Vitals &amp; timings</h4>' + psiTable( data.psiRows.vitals, results );
+			[ mobile, desktop ].forEach( ( result ) => {
 				if ( result.error ) {
-					html += '<p class="audit-status-warning">' + escapeHtml( result.strategy || '' ) + ' PageSpeed error: ' + escapeHtml( result.message ) + '</p>';
+					html += '<p class="wp-audit-note">' + escapeHtml( result.strategy ) + ': ' + escapeHtml( result.message ) + '</p>';
 				}
 			} );
-
-			html += '<h4 class="wp-audit-subheading">Performance Metrics Visualization</h4>'
-				+ '<div class="wp-audit-chart-box"><canvas id="performance-radar-chart" style="max-height: 400px;"></canvas></div>';
+			html += '<p class="wp-audit-note">Lab data from Lighthouse for the homepage, except INP which comes from real Chrome users. Mobile is tested on a throttled device, so it is usually lower.</p>';
 
 			container.innerHTML = html;
-			initTableSorting();
-			drawRadarChart( results );
+			initTables( container );
 		} );
 	}
 
-	function drawRadarChart( results ) {
-		const canvas = document.getElementById( 'performance-radar-chart' );
-		if ( ! canvas || typeof Chart === 'undefined' ) {
-			return;
+	const pagespeedReady = loadPagespeed();
+
+	/**
+	 * Exports include PageSpeed only once it's cached, so wait for the background fetch first.
+	 */
+	function whenPagespeedReady() {
+		const container = document.getElementById( 'wp-audit-pagespeed' );
+		if ( container && container.getAttribute( 'aria-busy' ) === 'true' ) {
+			announce( 'Waiting for PageSpeed results to finish so they are included…' );
 		}
-
-		const keys = [ 'performance', 'accessibility', 'seo', 'best_practices' ];
-		const datasets = [];
-		const series = [
-			[ 'Desktop', results.desktop, '34, 113, 177' ],
-			[ 'Mobile', results.mobile, '255, 185, 0' ],
-		];
-		series.forEach( ( [ label, result, rgb ] ) => {
-			if ( ! result || result.error ) {
-				return;
-			}
-			datasets.push( {
-				label,
-				data: keys.map( ( key ) => result[ key ] || 0 ),
-				backgroundColor: 'rgba(' + rgb + ', 0.2)',
-				borderColor: 'rgba(' + rgb + ', 1)',
-				borderWidth: 2,
-				pointBackgroundColor: 'rgba(' + rgb + ', 1)',
-				pointBorderColor: '#fff',
-				pointHoverBackgroundColor: '#fff',
-				pointHoverBorderColor: 'rgba(' + rgb + ', 1)',
-			} );
-		} );
-
-		new Chart( canvas, {
-			type: 'radar',
-			data: { labels: [ 'Performance', 'Accessibility', 'SEO', 'Best Practices' ], datasets },
-			options: {
-				responsive: true,
-				maintainAspectRatio: true,
-				scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 }, pointLabels: { font: { size: 13 } } } },
-				plugins: {
-					legend: { position: 'bottom', labels: { padding: 20, font: { size: 13 } } },
-					tooltip: { callbacks: { label: ( context ) => context.dataset.label + ': ' + context.parsed.r + '/100' } },
-				},
-			},
-		} );
+		return pagespeedReady;
 	}
 
 	/* ======================================================================
-	   Table sorting
+	   Tables: accessible sorting and filtering
 	   ====================================================================== */
 
-	const EMPTY_VALUES = [ '', 'N/A', '—', 'None' ];
-
-	function initTableSorting() {
-		document.querySelectorAll( '.wp-audit-table' ).forEach( ( table ) => {
-			const tbody = table.querySelector( 'tbody' );
-			if ( ! tbody || tbody.querySelectorAll( 'tr' ).length <= 1 ) {
-				return; // Skip tables with 0 or 1 rows
-			}
-
-			const headers = table.querySelectorAll( 'thead th' );
-			headers.forEach( ( header, index ) => {
-				if ( header.dataset.sortInitialized === 'true' ) {
-					return;
-				}
-				header.classList.add( 'sortable' );
-				header.dataset.sortInitialized = 'true';
-
-				header.addEventListener( 'click', function () {
-					const newSort = this.classList.contains( 'sort-asc' ) ? 'desc' : 'asc';
-					headers.forEach( ( h ) => h.classList.remove( 'sort-asc', 'sort-desc' ) );
-					this.classList.add( 'sort-' + newSort );
-					sortTable( table, index, newSort );
-				} );
-			} );
-		} );
-	}
+	const EMPTY_VALUES = [ '', 'N/A', 'n/a', '—', 'None' ];
 
 	function toNumber( text ) {
 		return parseFloat( text.replace( /[,\s]/g, '' ).replace( /[^\d.-]/g, '' ) );
 	}
 
 	function sortTable( table, columnIndex, direction ) {
-		const tbody = table.querySelector( 'tbody' );
-		const rows = Array.from( tbody.querySelectorAll( ':scope > tr' ) );
+		const tbody = table.tBodies[ 0 ];
+		const rows = Array.from( tbody.rows );
 		const cellText = ( row ) => ( row.cells[ columnIndex ] ? row.cells[ columnIndex ].textContent.trim() : '' );
+		const isNumeric = rows.every( ( row ) => EMPTY_VALUES.includes( cellText( row ) ) || ! isNaN( toNumber( cellText( row ) ) ) );
 
-		const isNumeric = rows.every( ( row ) => {
-			const text = cellText( row );
-			return EMPTY_VALUES.includes( text ) || ! isNaN( toNumber( text ) );
-		} );
-
-		rows.sort( ( rowA, rowB ) => {
-			const textA = cellText( rowA );
-			const textB = cellText( rowB );
+		rows.sort( ( a, b ) => {
+			const textA = cellText( a );
+			const textB = cellText( b );
 			let comparison;
-
 			if ( isNumeric ) {
 				const numA = EMPTY_VALUES.includes( textA ) ? -Infinity : toNumber( textA );
 				const numB = EMPTY_VALUES.includes( textB ) ? -Infinity : toNumber( textB );
 				comparison = numA === numB ? 0 : ( numA < numB ? -1 : 1 );
 			} else {
-				comparison = textA.toLowerCase().localeCompare( textB.toLowerCase() );
+				comparison = textA.localeCompare( textB, undefined, { sensitivity: 'base', numeric: true } );
 			}
-
-			return direction === 'asc' ? comparison : -comparison;
+			return direction === 'ascending' ? comparison : -comparison;
 		} );
 
 		rows.forEach( ( row ) => tbody.appendChild( row ) );
 	}
 
+	function initTables( root ) {
+		root.querySelectorAll( '.wp-audit-table' ).forEach( ( table ) => {
+			if ( table.dataset.ready || ! table.tBodies[ 0 ] || table.tBodies[ 0 ].rows.length < 3 ) {
+				return;
+			}
+			table.dataset.ready = '1';
+
+			const headers = Array.from( table.tHead.rows[ 0 ].cells );
+			headers.forEach( ( th, index ) => {
+				// A real button makes sorting reachable by keyboard and announced by screen readers.
+				const button = document.createElement( 'button' );
+				button.type = 'button';
+				button.className = 'wp-audit-sort';
+				button.innerHTML = '<span>' + th.innerHTML + '</span><span class="wp-audit-sort-icon" aria-hidden="true"></span>';
+				th.textContent = '';
+				th.appendChild( button );
+
+				button.addEventListener( 'click', () => {
+					const direction = th.getAttribute( 'aria-sort' ) === 'ascending' ? 'descending' : 'ascending';
+					headers.forEach( ( other ) => other.removeAttribute( 'aria-sort' ) );
+					th.setAttribute( 'aria-sort', direction );
+					sortTable( table, index, direction );
+				} );
+			} );
+		} );
+	}
+
+	function initFilters() {
+		document.querySelectorAll( '.wp-audit-filter' ).forEach( ( input ) => {
+			const table = input.closest( '.wp-audit-block' ).querySelector( '.wp-audit-table' );
+			if ( ! table ) {
+				return;
+			}
+			input.addEventListener( 'input', () => {
+				const term = input.value.trim().toLowerCase();
+				let shown = 0;
+				Array.from( table.tBodies[ 0 ].rows ).forEach( ( row ) => {
+					const match = ! term || row.textContent.toLowerCase().includes( term );
+					row.hidden = ! match;
+					shown += match ? 1 : 0;
+				} );
+				announce( term ? shown + ' matching rows' : '' );
+			} );
+		} );
+	}
+
 	/* ======================================================================
-	   Sticky nav active state
+	   Navigation, expand/collapse, print
 	   ====================================================================== */
 
 	function initNavHighlight() {
-		const navLinks = document.querySelectorAll( '.wp-audit-nav a' );
+		const links = document.querySelectorAll( '.wp-audit-nav a' );
 		const observer = new IntersectionObserver( ( entries ) => {
 			entries.forEach( ( entry ) => {
 				if ( ! entry.isIntersecting ) {
 					return;
 				}
-				navLinks.forEach( ( link ) => {
-					link.classList.toggle( 'active', link.getAttribute( 'href' ) === '#' + entry.target.id );
+				links.forEach( ( link ) => {
+					const active = link.getAttribute( 'href' ) === '#' + entry.target.id;
+					link.classList.toggle( 'is-active', active );
+					if ( active ) {
+						link.setAttribute( 'aria-current', 'location' );
+					} else {
+						link.removeAttribute( 'aria-current' );
+					}
 				} );
 			} );
-		}, { root: null, rootMargin: '-40px 0px -60% 0px', threshold: 0 } );
+		}, { rootMargin: '-80px 0px -70% 0px' } );
 
-		document.querySelectorAll( '.wp-audit-content h2' ).forEach( ( section ) => observer.observe( section ) );
+		document.querySelectorAll( '.wp-audit-section' ).forEach( ( section ) => observer.observe( section ) );
+	}
+
+	function setAllDetails( open ) {
+		document.querySelectorAll( '.wp-audit-collapsible' ).forEach( ( details ) => {
+			details.open = open;
+		} );
+	}
+
+	function initExpandButtons() {
+		document.querySelectorAll( '[data-wp-audit-expand]' ).forEach( ( button ) => {
+			button.addEventListener( 'click', () => {
+				const open = button.dataset.wpAuditExpand === 'open';
+				setAllDetails( open );
+				announce( open ? 'All collapsed lists expanded.' : 'All collapsed lists collapsed.' );
+			} );
+		} );
+	}
+
+	function initPrint() {
+		// Closed <details> don't print, so expand everything for the printout and restore afterwards.
+		let previouslyClosed = [];
+		window.addEventListener( 'beforeprint', () => {
+			previouslyClosed = Array.from( document.querySelectorAll( '.wp-audit details:not([open])' ) );
+			previouslyClosed.forEach( ( details ) => {
+				details.open = true;
+			} );
+		} );
+		window.addEventListener( 'afterprint', () => {
+			previouslyClosed.forEach( ( details ) => {
+				details.open = false;
+			} );
+		} );
+
+		const button = document.querySelector( '[data-wp-audit-print]' );
+		if ( button ) {
+			button.addEventListener( 'click', () => window.print() );
+		}
 	}
 
 	/* ======================================================================
-	   Markdown export
+	   Exports
 	   ====================================================================== */
 
-	function cleanText( text ) {
-		return text.trim().replace( /\s+/g, ' ' );
-	}
-
-	function nestedTableToMarkdown( table ) {
-		const rows = [];
-		table.querySelectorAll( 'tbody tr' ).forEach( ( tr ) => {
-			const cells = Array.from( tr.querySelectorAll( 'td' ) ).map( ( td ) => cleanText( td.textContent ) );
-			if ( cells.length ) {
-				rows.push( cells.join( ': ' ) );
-			}
-		} );
-		return ' (' + rows.join( '; ' ) + ') ';
-	}
-
-	function tableToMarkdown( table ) {
-		let md = '';
-		const headers = Array.from( table.querySelectorAll( ':scope > thead th' ) ).map( ( th ) => cleanText( th.textContent ).replace( /\s*\?$/, '' ) );
-
-		if ( headers.length ) {
-			md += '| ' + headers.join( ' | ' ) + ' |\n';
-			md += '|' + headers.map( () => ' --- ' ).join( '|' ) + '|\n';
+	function copyText( text ) {
+		if ( navigator.clipboard && window.isSecureContext ) {
+			return navigator.clipboard.writeText( text );
 		}
-
-		table.querySelectorAll( ':scope > tbody > tr' ).forEach( ( tr ) => {
-			const row = Array.from( tr.cells ).map( ( td ) => {
-				const nested = td.querySelector( '.wp-audit-table' );
-				if ( nested ) {
-					const own = td.cloneNode( true );
-					own.querySelector( '.wp-audit-table' ).remove();
-					return cleanText( own.textContent ) + nestedTableToMarkdown( nested );
-				}
-				const links = td.querySelectorAll( 'a' );
-				if ( links.length ) {
-					return Array.from( links ).map( ( link ) => '[' + cleanText( link.textContent ) + '](' + link.href + ')' ).join( ' ' );
-				}
-				// textContent (not innerText) so collapsed <details> lists are still exported.
-				return cleanText( td.textContent ).replace( /\|/g, '\\|' );
-			} );
-			if ( row.length ) {
-				md += '| ' + row.join( ' | ' ) + ' |\n';
+		// http:// admin (e.g. local dev) has no Clipboard API; fall back to a hidden textarea.
+		return new Promise( ( resolve, reject ) => {
+			const area = document.createElement( 'textarea' );
+			area.value = text;
+			area.setAttribute( 'readonly', '' );
+			area.style.position = 'fixed';
+			area.style.opacity = '0';
+			document.body.appendChild( area );
+			area.select();
+			const ok = document.execCommand( 'copy' );
+			area.remove();
+			if ( ok ) {
+				resolve();
+			} else {
+				reject( new Error( 'Copy command was blocked' ) );
 			}
 		} );
-
-		return md;
 	}
 
-	function buildMarkdown() {
-		let md = '# WordPress Site Audit Report\n\n';
-		md += '**Generated:** ' + new Date().toLocaleDateString() + '\n\n';
-
-		const overview = document.getElementById( 'section-overview' );
-		if ( overview ) {
-			md += '## Website Overview\n\n';
-			overview.querySelectorAll( '.wp-audit-overview-item' ).forEach( ( item ) => {
-				const title = cleanText( item.querySelector( '.wp-audit-overview-item-header strong' ).textContent );
-				const value = item.querySelector( '.value' );
-				md += '**' + title + ':** ' + ( value ? cleanText( value.textContent ) : '' ) + '\n\n';
-			} );
-			md += '---\n\n';
-		}
-
-		const content = document.querySelector( '.wp-audit-content' );
-		content.querySelectorAll( 'h2, h3, h4, .wp-audit-table, p, .audit-summary, .audit-section-header' ).forEach( ( el ) => {
-			// Nested tables and paragraphs inside tables/summaries are exported by their parent.
-			if ( el.parentElement.closest( '.wp-audit-table, .audit-summary' ) ) {
-				return;
-			}
-
-			if ( el.tagName === 'H2' ) {
-				md += '## ' + cleanText( el.textContent ) + '\n\n';
-			} else if ( el.tagName === 'H3' || el.classList.contains( 'audit-section-header' ) ) {
-				md += '### ' + cleanText( el.textContent ) + '\n\n';
-			} else if ( el.tagName === 'H4' ) {
-				md += '#### ' + cleanText( el.textContent ) + '\n\n';
-			} else if ( el.classList.contains( 'wp-audit-table' ) ) {
-				md += tableToMarkdown( el ) + '\n';
-			} else if ( el.classList.contains( 'audit-summary' ) ) {
-				md += '> ' + cleanText( el.textContent ) + '\n\n';
-			} else if ( el.tagName === 'P' && cleanText( el.textContent ) ) {
-				md += cleanText( el.textContent ) + '\n\n';
-			}
-		} );
-
-		return md;
-	}
-
-	function initExport() {
-		const exportBtn = document.getElementById( 'wp-audit-export-btn' );
-		if ( ! exportBtn ) {
+	function initCopy() {
+		const button = document.querySelector( '[data-wp-audit-copy]' );
+		if ( ! button ) {
 			return;
 		}
+		const label = button.querySelector( '.wp-audit-copy-label' );
+		const original = label.textContent;
 
-		exportBtn.addEventListener( 'click', () => {
-			const blob = new Blob( [ buildMarkdown() ], { type: 'text/markdown;charset=utf-8' } );
-			const url = URL.createObjectURL( blob );
-			const date = new Date().toISOString().split( 'T' )[ 0 ];
-			const a = document.createElement( 'a' );
+		button.addEventListener( 'click', () => {
+			button.disabled = true;
+			label.textContent = 'Preparing…';
 
-			a.href = url;
-			a.download = ( data.siteName || 'site' ) + '-audit-report-' + date + '.md';
-			document.body.appendChild( a );
-			a.click();
-			a.remove();
-			URL.revokeObjectURL( url );
+			whenPagespeedReady()
+				.then( () => {
+					const form = new FormData();
+					form.append( 'action', 'wp_audit_markdown' );
+					form.append( 'nonce', data.markdownNonce );
+					return fetch( data.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: form } );
+				} )
+				.then( ( response ) => response.json() )
+				.then( ( json ) => {
+					if ( ! json.success ) {
+						throw new Error( 'The server could not build the report.' );
+					}
+					const markdown = json.data.markdown;
+					return copyText( markdown ).then( () => markdown );
+				} )
+				.then( ( markdown ) => {
+					const kb = Math.round( markdown.length / 1024 );
+					label.textContent = 'Copied';
+					announce( 'Copied ' + kb + ' KB of Markdown (about ' + Math.round( markdown.length / 4000 ) + 'k tokens). Paste it into your AI tool.' );
+				} )
+				.catch( ( err ) => {
+					label.textContent = original;
+					announce( 'Copy failed: ' + err.message + ' Use the .md download instead.' );
+				} )
+				.finally( () => {
+					button.disabled = false;
+					setTimeout( () => {
+						label.textContent = original;
+					}, 3000 );
+				} );
+		} );
+	}
+
+	function initExportLinks() {
+		document.querySelectorAll( '[data-wp-audit-export]' ).forEach( ( link ) => {
+			link.addEventListener( 'click', ( event ) => {
+				const container = document.getElementById( 'wp-audit-pagespeed' );
+				if ( container && container.getAttribute( 'aria-busy' ) === 'true' ) {
+					event.preventDefault();
+					whenPagespeedReady().then( () => {
+						announce( 'Downloading…' );
+						window.location.href = link.href;
+					} );
+				}
+			} );
 		} );
 	}
 
 	initCharts();
-	initTableSorting();
+	initTables( document );
+	initFilters();
 	initNavHighlight();
-	initExport();
-	loadPagespeed();
+	initExpandButtons();
+	initPrint();
+	initCopy();
+	initExportLinks();
 }() );
